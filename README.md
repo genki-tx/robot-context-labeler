@@ -135,13 +135,12 @@ output:
    - Raw model text: `./output_labels/episode_<id>_raw.txt`  
    - Debug stitched video (if enabled): `./debug_videos/episode_<id>.mp4`
 
-## Extending
-- **Retry/Backoff**: Add retry logic in `GeminiInferenceClient.analyze_episode`.  
-- **Multiprocessing**: Parallelize episodes in `runner.py` (respecting Gemini rate limits).  
-- **Additional preprocessing**: Extend `FramePreprocessingConfig` (color transforms, masks).  
-- **Validation rules**: Tighten or relax constraints in `parser.py` (e.g., segment gap checks).  
-- **Prompt variants**: Swap `prompt_path` per dataset or task; adjust `RULE_PROMPT` schema in `gemini_client.py`.  
-- **JSONL aggregation**: Add a post-step to merge per-episode JSONs for training.
+
+## Image Preprocessing Tips
+- **Resize**: `resize: [width, height]` warps the frame to exact dimensions (OpenCV does not preserve aspect ratio by default). Pick dimensions matching the source aspect, or crop first to your target aspect, then resize.  
+- **Crop**: `crop: [x, y, width, height]` applies before resizing; use it to remove borders or enforce aspect ratios.  
+- **Multi-camera stitching**: If cameras differ in size and you don’t resize, the stitcher normalizes heights proportionally; setting explicit `resize` per camera keeps widths predictable.  
+- **Letterbox/padding**: Not implemented by default; add a padding step if you need to preserve aspect without warp.
 
 ## Troubleshooting
 - **Missing key**: Runner logs a warning and skips Gemini; set `GEMINI_API_KEY`.  
@@ -149,8 +148,9 @@ output:
 - **Stitching size issues**: Ensure preprocessing brings cameras to compatible heights (resize/crop).  
 - **Model JSON errors**: Inspect `_raw.txt` and warnings; adjust prompt or validation if needed.
 
-## Image Preprocessing Tips
-- **Resize**: `resize: [width, height]` warps the frame to exact dimensions (OpenCV does not preserve aspect ratio by default). Pick dimensions matching the source aspect, or crop first to your target aspect, then resize.  
-- **Crop**: `crop: [x, y, width, height]` applies before resizing; use it to remove borders or enforce aspect ratios.  
-- **Multi-camera stitching**: If cameras differ in size and you don’t resize, the stitcher normalizes heights proportionally; setting explicit `resize` per camera keeps widths predictable.  
-- **Letterbox/padding**: Not implemented by default; add a padding step if you need to preserve aspect without warp.
+## Extending
+- **Retry/Backoff**: Add retry logic in `GeminiInferenceClient.analyze_episode`.  
+- **Additional preprocessing**: Extend `FramePreprocessingConfig` (color transforms, masks).  
+- **Validation rules**: Tighten or relax constraints in `parser.py` (e.g., segment gap checks).  
+- **Prompt variants**: Swap `prompt_path` per dataset or task; adjust `RULE_PROMPT` schema in `gemini_client.py`.  
+- **JSONL aggregation**: Add a post-step to merge per-episode JSONs for training.
