@@ -1,0 +1,37 @@
+services:
+  context-labeler:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+      # build-time args from .env
+        DATASET_ROOT: ${DATASET_ROOT}
+    image: context-labeler:latest
+    container_name: context-labeler-${USER}
+    working_dir: /workspace
+    privileged: true
+    network_mode: "host"
+    tty: true
+    stdin_open: true
+    shm_size: "16g"
+    env_file:
+      - .env
+    environment:
+      - PYTHONPATH=/workspace/src:/workspace/lerobot/src
+      - WORKSPACE_CACHE=/workspace/.cache
+      - XDG_CACHE_HOME=/workspace/.cache/xdg
+      - HF_HOME=/workspace/.cache/hf
+      - HF_DATASETS_CACHE=/workspace/.cache/hf_datasets
+      - TORCHINDUCTOR_CACHE_DIR=/workspace/.cache/triton
+      - TOKENIZERS_PARALLELISM=false
+      - PYTHONWARNINGS=ignore::UserWarning:torchvision.io._video_deprecation_warning
+    volumes:
+      - .:/workspace
+      - ${DATASET_ROOT:-/dataset}:/dataset
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: ["gpu"]
