@@ -5,7 +5,7 @@ dataset:
 episodes:
   # Inclusive episode ID bounds; int or zero-padded string. Set to null to process all.
   start_id: 0
-  end_id: 1
+  end_id: 3
 
 cameras:
   # Camera directory names under <root>/videos/<chunk-id>/.
@@ -18,8 +18,8 @@ cameras:
       # crop: [x, y, width, height]
       crop: [0, 0, 320, 480]
     observation.images.usb_cam:
-      # center-crop to 960x720 (4:3) from 1280x720
-      crop: [160, 0, 960, 720]
+      # crop to 960x720 (4:3) from 1280x720. Crop is shifted to left to capture gripper fingertip.
+      crop: [290, 0, 1250, 720]
       # then resize to 640x480
       resize: [640, 480]
       # rotate_deg: degrees to rotate after crop/resize (90, 180, 270, -90)
@@ -31,7 +31,7 @@ processing:
   # Downsampled FPS for the burned/stitched video.
   target_fps: 1.0
   # Keep a copy of the stitched video on disk for inspection.
-  debug_keep_video: true
+  debug_keep_video: false
   # Where to store debug copies if enabled.
   debug_dir: "./debug_videos"
 

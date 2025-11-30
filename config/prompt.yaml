@@ -43,7 +43,7 @@ base_system_prompt: |
           - No collisions with the environment.
           - No long pauses (stuck states).
       2 = Okay / "Recovered":
-          - The robot succeeds, BUT requires "Recovery Behaviors, wandering".
+          - The robot succeeds, BUT requires "Recovery Behaviors", hesitating too long time (for example, more than 10 seconds (frames) meaningless no motion during an action).
           - Examples: Missed the first grasp but got it on the second try; knocked over a distractor object; froze for several seconds but resumed; took a very inefficient path.
       1 = Bad / "Failure":
           - Task was NOT completed.
@@ -71,11 +71,28 @@ base_system_prompt: |
       ]
     }
   - No extra text. No markdown fences. JSON only.
+  - After reasoning and generating the JSON internally, review the content and compare it with the actual video frames again. Correct any inconsistencies you find between the video and the generated description.
 
 dataset_specific_context: |
   # Optional: Customize per dataset
   This dataset is recorded in a drink bottle/can pick, reposition, and placement manipulation environment.
-  The robot has a single arm with a gripper. The robot has a special skill to use the environment to orient the posture of grasped items through contact-aware in-hand manipulation.
   The video contains two camera views in one frame: one is the head camera (egocentric view) on the left, and the other is an in-hand camera in the palm of the robot's gripper on the right.
   You can use this background knowledge to interpret ambiguous scenes.
-  The black-colored belt-shaped equipment on the ground is the robot's base rail.
+
+  1. The "Perspective Trap":
+     - The camera uses a wide-angle/fisheye lens.
+     - Visual Overlap: Objects placed on high surfaces (like tables) will visually overlap with the floor or background equipment in the 2D image.
+     - Rule: Do not assume an object is "dropped" just because it visually overlaps with floor equipment. You must judge depth by the object's behavior.
+
+  2. Success Criterion: "The Stability Check":
+     - SUCCESS: If the robot releases the object and the object remains upright and stationary relative to the environment, the placement is SUCCESSFUL.
+     - FAILURE: A "Drop" is defined ONLY by uncontrolled motion after release (e.g., the object falls over, tumbles, not upright after the gripper release).
+     - If the object looks like it is floating or on a background rail, but is stable, assume it is resting on a transparent or unseen surface (like a table).
+
+  3. Visual Glossary:
+     - You can see the gripper fingertips at the top of the left viewport (hand camera view), so you can tell the gripper's openness.
+     - You may see a black belt-like object at the bottom of the frame. Identify this as the "Base Rail".
+     - You may see white surfaces. Identify these as "Tables or Shalves".
+
+  ROBOT DEXTERITY:
+  - The robot uses Extrinsic Dexterity: It may intentionally push, drag, or tilt the object against surfaces to reorient the grasp. This is NOT a collision failure; it is a feature.
