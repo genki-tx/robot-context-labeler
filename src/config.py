@@ -8,6 +8,7 @@ import yaml
 class FramePreprocessingConfig:
     crop: Optional[List[int]] = None  # [x, y, width, height]
     resize: Optional[List[int]] = None  # [width, height]
+    rotate_deg: Optional[int] = None  # rotation in degrees (applied after crop/resize)
 
 
 @dataclass
@@ -68,6 +69,7 @@ def _build_frame_preprocessing(raw_cfg: Dict[str, Dict]) -> Dict[str, FramePrepr
         result[camera] = FramePreprocessingConfig(
             crop=cfg.get("crop"),
             resize=cfg.get("resize"),
+            rotate_deg=cfg.get("rotate_deg"),
         )
     return result
 

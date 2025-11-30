@@ -47,11 +47,11 @@ This enables downstream training, filtering by skill quality, and reasoning over
 1) **Config & Discovery**  
    - YAML-driven discovery under `<root>/videos/chunk-*/<camera>/episode_<id>.mp4`, respecting optional ID bounds.  
    - Multi-camera support: any set of camera directories can participate.
-2) **Preprocess (“Burn-in & Stitch”)**  
-   - Per-camera crop/resize hooks to normalize views (match heights, tame resolution).  
+2) **Preprocess (“Burn-in & Stitch”)** (per camera per frame: **crop → resize → rotate → stitch**)  
+   - Per-camera hooks: optional `crop` (x, y, w, h), optional `resize` (w, h) with warp (no aspect preservation), optional `rotate_deg` ∈ {0, 90, 180, 270}.  
    - FPS downsampling to reduce cost and emphasize state changes.  
-   - Horizontal stitch of all camera frames to give Gemini a synchronized multi-view panorama.  
-   - Burn `Frame: N` text on every stitched frame—this is the only timing source the model uses, eliminating hallucinated timestamps.  
+   - Heights normalized when stitching; horizontal stitch gives a synchronized multi-view panorama.  
+   - Burn `Frame: N` text on every stitched frame—this is the only timing source the model uses (1-indexed), eliminating hallucinated timestamps.  
    - Output written to `/dev/shm/gemini_VLM/episode_<id>.mp4` (optional debug copy on disk).
 3) **Gemini Inference**  
    - Upload preprocessed video.  
@@ -105,7 +105,7 @@ processing:
   debug_keep_video: true
   debug_dir: "./debug_videos"
 gemini:
-  model_name: "gemini-3-pro-preview"
+  model_name: "gemini-3-pro-preview"  # use for production/best reasoning; gemini-2.0-flash-exp is cheaper for trial/debug
 prompt_path: "./config/prompt.yaml"
 output:
   dir: "./gemini_labels"
@@ -148,3 +148,9 @@ output:
 - **No episodes found**: Check `dataset.root`, camera names, and `start_id/end_id` bounds.  
 - **Stitching size issues**: Ensure preprocessing brings cameras to compatible heights (resize/crop).  
 - **Model JSON errors**: Inspect `_raw.txt` and warnings; adjust prompt or validation if needed.
+
+## Image Preprocessing Tips
+- **Resize**: `resize: [width, height]` warps the frame to exact dimensions (OpenCV does not preserve aspect ratio by default). Pick dimensions matching the source aspect, or crop first to your target aspect, then resize.  
+- **Crop**: `crop: [x, y, width, height]` applies before resizing; use it to remove borders or enforce aspect ratios.  
+- **Multi-camera stitching**: If cameras differ in size and you don’t resize, the stitcher normalizes heights proportionally; setting explicit `resize` per camera keeps widths predictable.  
+- **Letterbox/padding**: Not implemented by default; add a padding step if you need to preserve aspect without warp.

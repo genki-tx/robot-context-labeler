@@ -34,6 +34,20 @@ def preprocess_frame(frame, camera_id: str, preprocessing: Dict[str, FramePrepro
     if cfg.resize:
         width, height = cfg.resize
         processed = cv2.resize(processed, (int(width), int(height)))
+    if cfg.rotate_deg is not None:
+        angle = cfg.rotate_deg % 360
+        rotate_flags = {
+            0: None,
+            90: cv2.ROTATE_90_CLOCKWISE,
+            180: cv2.ROTATE_180,
+            270: cv2.ROTATE_90_COUNTERCLOCKWISE,
+            -90: cv2.ROTATE_90_COUNTERCLOCKWISE,
+        }
+        if angle in rotate_flags:
+            if rotate_flags[angle] is not None:
+                processed = cv2.rotate(processed, rotate_flags[angle])
+        else:
+            print(f"[WARN] Unsupported rotation angle {cfg.rotate_deg} for {camera_id}; skipping rotation.")
     return processed
 
 

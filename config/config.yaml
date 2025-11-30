@@ -1,30 +1,47 @@
 dataset:
+  # Absolute path to the dataset root containing "videos/".
   root: "/dataset/example"
 
 episodes:
-  start_id: 1
+  # Inclusive episode ID bounds; int or zero-padded string. Set to null to process all.
+  start_id: 0
   end_id: 1
 
 cameras:
+  # Camera directory names under <root>/videos/<chunk-id>/.
   targets:
     - "observation.images.head_cam"
     - "observation.images.usb_cam"
+  # Optional per-camera preprocessing hooks.
   preprocessing:
     observation.images.head_cam:
+      # crop: [x, y, width, height]
       crop: [0, 0, 320, 480]
     observation.images.usb_cam:
+      # center-crop to 960x720 (4:3) from 1280x720
+      crop: [160, 0, 960, 720]
+      # then resize to 640x480
       resize: [640, 480]
+      # rotate_deg: degrees to rotate after crop/resize (90, 180, 270, -90)
+      rotate_deg: -90
 
 processing:
+  # Downsampled FPS for the burned/stitched video.
   target_fps: 1.0
+  # Keep a copy of the stitched video on disk for inspection.
   debug_keep_video: true
+  # Where to store debug copies if enabled.
   debug_dir: "./debug_videos"
 
 gemini:
+  # Model to use: gemini-3-pro-preview for best reasoning; gemini-2.0-flash-exp for cheaper trial/debug.
   model_name: "gemini-3-pro-preview"
 
+# Path to the prompt YAML that holds base_system_prompt and dataset context.
 prompt_path: "./config/prompt.yaml"
 
 output:
+  # Directory where per-episode JSON and raw outputs are written.
   dir: "./output_labels"
+  # Must include {episode_id} placeholder.
   filename_pattern: "episode_{episode_id}.json"

@@ -83,6 +83,7 @@ class GeminiInferenceClient:
         self.client = genai.Client(api_key=self.api_key)
 
     def analyze_episode(self, video_path: str, prompt_text: str) -> str:
+        start_time = time.time()
         video_file = self.client.files.upload(file=video_path)
         while video_file.state.name == "PROCESSING":
             time.sleep(1.0)
@@ -100,4 +101,6 @@ class GeminiInferenceClient:
                 )
             ],
         )
+        duration = time.time() - start_time
+        print(f"[INFO] Gemini call completed in {duration:.2f}s for {video_path}")
         return response.text

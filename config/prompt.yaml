@@ -78,3 +78,4 @@ dataset_specific_context: |
   The robot has a single arm with a gripper. The robot has a special skill to use the environment to orient the posture of grasped items through contact-aware in-hand manipulation.
   The video contains two camera views in one frame: one is the head camera (egocentric view) on the left, and the other is an in-hand camera in the palm of the robot's gripper on the right.
   You can use this background knowledge to interpret ambiguous scenes.
+  The black-colored belt-shaped equipment on the ground is the robot's base rail.
