@@ -33,6 +33,7 @@ class ProcessingConfig:
     target_fps: float = 1.0
     debug_keep_video: bool = False
     debug_dir: str = "./debug_videos"
+    workers: int = 1
 
 
 @dataclass
@@ -107,6 +108,7 @@ def load_config(path: str) -> PipelineConfig:
         target_fps=processing_raw.get("target_fps", 1.0),
         debug_keep_video=processing_raw.get("debug_keep_video", False),
         debug_dir=processing_raw.get("debug_dir", "./debug_videos"),
+        workers=int(processing_raw.get("workers", 1)),
     )
     gemini_cfg = GeminiConfig(model_name=raw["gemini"]["model_name"])
     output_raw = raw["output"]

@@ -1,14 +1,13 @@
 import argparse
 import glob
-import json
 import os
 import re
+import concurrent.futures
 from typing import Dict, List, Optional, Tuple
 
 from config import CamerasConfig, EpisodesConfig, PipelineConfig, load_config, load_prompt_config
-from gemini_client import GeminiInferenceClient, build_prompt
-from parser import parse_gemini_response
-from preprocess import EpisodeMedia, preprocess_episode
+from gemini_client import GeminiInferenceClient
+from worker import process_episode
 
 
 def _episode_id_from_filename(path: str) -> Optional[str]:
@@ -51,23 +50,6 @@ def discover_episodes(
     return discovered
 
 
-def write_episode_output(output_cfg, episode_id: str, payload: Dict) -> str:
-    os.makedirs(output_cfg.dir, exist_ok=True)
-    filename = output_cfg.filename_pattern.format(episode_id=episode_id)
-    path = os.path.join(output_cfg.dir, filename)
-    with open(path, "w") as f:
-        json.dump(payload, f, ensure_ascii=True)
-    return path
-
-
-def persist_raw(output_dir: str, episode_id: str, raw_text: str):
-    os.makedirs(output_dir, exist_ok=True)
-    path = os.path.join(output_dir, f"episode_{episode_id}_raw.txt")
-    with open(path, "w") as f:
-        f.write(raw_text)
-    return path
-
-
 def run_pipeline(cfg: PipelineConfig, args):
     episodes = discover_episodes(cfg.dataset.root, cfg.cameras, cfg.episodes)
 
@@ -76,52 +58,33 @@ def run_pipeline(cfg: PipelineConfig, args):
         return
 
     prompt_cfg = load_prompt_config(cfg.prompt_path)
-    client = None
     skip_gemini = args.skip_gemini
     if not skip_gemini:
         try:
-            client = GeminiInferenceClient(cfg.gemini.model_name)
+            GeminiInferenceClient(cfg.gemini.model_name)
         except ValueError as exc:
             print(f"[WARN] {exc}. Set GEMINI_API_KEY or use --skip-gemini. Falling back to skip.")
             skip_gemini = True
 
-    for chunk_id, episode_id in episodes:
-        print(f"[INFO] Processing {chunk_id} / episode_{episode_id}")
-        media: Optional[EpisodeMedia] = preprocess_episode(
-            dataset_root=cfg.dataset.root,
-            chunk_id=chunk_id,
-            episode_id=episode_id,
-            cameras_cfg=cfg.cameras,
-            processing_cfg=cfg.processing,
-        )
-        if not media:
-            print(f"[WARN] Skipping episode {episode_id} (preprocess failed).")
-            continue
+    workers = max(1, int(getattr(cfg.processing, "workers", 1)))
 
-        if skip_gemini:
-            print(f"[INFO] Skipping Gemini call for episode {episode_id}.")
-            continue
-
-        prompt_text = build_prompt(prompt_cfg, max_frame_count=media.frame_count)
-        raw_text = client.analyze_episode(media.video_path, prompt_text)
-        parsed = parse_gemini_response(episode_id, media.frame_count, raw_text)
-
-        if parsed.episode:
-            out_path = write_episode_output(cfg.output, episode_id, parsed.episode)
-            print(f"[INFO] Wrote episode JSON to {out_path}")
-        else:
-            print(f"[WARN] Parsing failed for episode {episode_id}. See raw output.")
-
-        raw_path = persist_raw(cfg.output.dir, episode_id, raw_text)
-        if parsed.warnings:
-            print(f"[WARN] Episode {episode_id} warnings:")
-            for w in parsed.warnings:
-                print(f" - {w}")
-        if parsed.errors:
-            print(f"[ERROR] Episode {episode_id} errors:")
-            for e in parsed.errors:
-                print(f" - {e}")
-        print(f"[DEBUG] Raw model response saved to {raw_path}")
+    if workers > 1:
+        print(f"[INFO] Running with {workers} workers.")
+        with concurrent.futures.ProcessPoolExecutor(max_workers=workers) as executor:
+            futures = [
+                executor.submit(process_episode, cfg, prompt_cfg, chunk_id, episode_id, skip_gemini)
+                for chunk_id, episode_id in episodes
+            ]
+            for fut in concurrent.futures.as_completed(futures):
+                try:
+                    res = fut.result()
+                except Exception as exc:
+                    res = {"episode_id": "unknown", "status": "error", "errors": [str(exc)]}
+                _log_result(res)
+    else:
+        for chunk_id, episode_id in episodes:
+            res = process_episode(cfg, prompt_cfg, chunk_id, episode_id, skip_gemini)
+            _log_result(res)
 
 
 def parse_args():
@@ -129,6 +92,20 @@ def parse_args():
     parser.add_argument("--config", default="./config/config.yaml", help="Path to pipeline YAML config.")
     parser.add_argument("--skip-gemini", action="store_true", help="Run preprocessing only, skip Gemini calls.")
     return parser.parse_args()
+
+
+def _log_result(res: Dict):
+    episode_id = res.get("episode_id", "?")
+    status = res.get("status", "unknown")
+    print(f"[INFO] Episode {episode_id} status: {status}")
+    if res.get("json_path"):
+        print(f"[INFO] JSON: {res['json_path']}")
+    if res.get("raw_path"):
+        print(f"[DEBUG] Raw: {res['raw_path']}")
+    for w in res.get("warnings", []):
+        print(f"[WARN] {episode_id}: {w}")
+    for e in res.get("errors", []):
+        print(f"[ERROR] {episode_id}: {e}")
 
 
 if __name__ == "__main__":

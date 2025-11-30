@@ -26,6 +26,8 @@ cameras:
       rotate_deg: -90
 
 processing:
+  # Number of worker processes (1 = serial).
+  workers: 2
   # Downsampled FPS for the burned/stitched video.
   target_fps: 1.0
   # Keep a copy of the stitched video on disk for inspection.
