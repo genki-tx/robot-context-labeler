@@ -1,7 +1,8 @@
 temp/
 logs/
-outputs/
-results*/
+output*/
+result*/
+debug*/
 wandb/
 *.mp4
 

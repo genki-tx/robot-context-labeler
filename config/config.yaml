@@ -1,0 +1,30 @@
+dataset:
+  root: "/dataset/example"
+
+episodes:
+  start_id: 1
+  end_id: 1
+
+cameras:
+  targets:
+    - "observation.images.head_cam"
+    - "observation.images.usb_cam"
+  preprocessing:
+    observation.images.head_cam:
+      crop: [0, 0, 320, 480]
+    observation.images.usb_cam:
+      resize: [640, 480]
+
+processing:
+  target_fps: 1.0
+  debug_keep_video: true
+  debug_dir: "./debug_videos"
+
+gemini:
+  model_name: "gemini-3-pro-preview"
+
+prompt_path: "./config/prompt.yaml"
+
+output:
+  dir: "./output_labels"
+  filename_pattern: "episode_{episode_id}.json"
