@@ -15,17 +15,11 @@ RUN apt-get update \
 
 RUN python -m pip install --upgrade pip setuptools wheel
 
-COPY lerobot /opt/lerobot
-RUN python -m pip install --no-cache-dir /opt/lerobot
-
-#COPY pyproject.toml /workspace/pyproject.toml
-#RUN python -m pip install --no-cache-dir /workspace
-
-RUN rm -rf /opt/lerobot /workspace/*
+COPY pyproject.toml /workspace/pyproject.toml
+RUN python -m pip install --no-cache-dir /workspace \
+ && rm -rf /workspace/*
 
 WORKDIR /workspace
-RUN mkdir -p /workspace/.cache/xdg /workspace/.cache/hf /workspace/.cache/hf_datasets \
- && chmod -R 775 /workspace/.cache
 
 # install codex in Dockerfile
 RUN curl -sSf https://get.volta.sh | bash -s -- --skip-setup && \
